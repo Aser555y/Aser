@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>عرض بيانات YSScores</title>
+  <style>
+    body {
+      background-color: #008DCD;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    li {
+      background: rgba(255, 255, 255, 0.1);
+      margin: 8px 0;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 18px;
+    }
+    #loading {
+      text-align: center;
+      font-size: 20px;
+      margin-top: 50px;
+    }
+  </style>
+</head>
+<body>
+  <h1>الدوريات من YSScores</h1>
+  <div id="loading">جاري تحميل البيانات...</div>
+  <ul id="league-list"></ul>
+
+  <script>
+    async function fetchLeagues() {
+      const proxy = "https://api.allorigins.win/get?url=";
+      const targetUrl = encodeURIComponent("https://www.ysscores.com/ar/index");
+
+      try {
+        const response = await fetch(proxy + targetUrl);
+        if (!response.ok) throw new Error("فشل تحميل الصفحة");
+
+        const data = await response.json();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.contents, "text/html");
+
+        // استخرج أسماء الدوريات من العنصر المناسب
+        // حسب الموقع الحالي، الدوري داخل قائمة: ul.tournaments-list > li > a
+        const leaguesElements = doc.querySelectorAll(".tournaments-list a");
+        const leagueList = document.getElementById("league-list");
+        leagueList.innerHTML = "";
+
+        if (leaguesElements.length === 0) {
+          leagueList.innerHTML = "<li>لا توجد بيانات للعرض.</li>";
+          document.getElementById("loading").style.display = "none";
+          return;
+        }
+
+        leaguesElements.forEach((el) => {
+          const li = document.createElement("li");
+          li.textContent = el.textContent.trim();
+          leagueList.appendChild(li);
+        });
+
+        document.getElementById("loading").style.display = "none";
+
+      } catch (error) {
+        document.getElementById("loading").textContent = "حدث خطأ أثناء تحميل البيانات.";
+        console.error(error);
+      }
+    }
+
+    fetchLeagues();
+  </script>
+</body>
+</html>

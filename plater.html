@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MPD Video Player</title>
+  <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <video id="videoPlayer" controls autoplay></video>
+  <script>
+    function getMPDUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('url');
+    }
+
+    const mpdUrl = getMPDUrl();
+    if (mpdUrl) {
+      const player = dashjs.MediaPlayer().create();
+      player.initialize(document.querySelector("#videoPlayer"), mpdUrl, true);
+    } else {
+      document.body.innerHTML = "<p style='color:white;text-align:center;margin-top:20px;'>No MPD URL provided. Use ?url=...</p>";
+    }
+  </script>
+</body>
+</html>

@@ -1,369 +1,221 @@
 <!doctype html>
 <html lang="ar">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>امتحان من JSON — سؤال واحد في كل مرة</title>
-  <style>
-    :root{
-      --bg:#f6f7fb;
-      --card:#ffffff;
-      --muted:#6b7280;
-      --accent:#0ea5a4;
-      --danger:#ef4444;
-      --success:#16a34a;
-      --shadow: 0 8px 24px rgba(15,23,42,0.06);
-    }
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      background: linear-gradient(180deg, #f3f4f6 0%, #eef2f7 100%);
-      color:#0f172a;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      padding:20px;
-      box-sizing:border-box;
-      direction:rtl;
-    }
-    .wrap{max-width:880px;margin:0 auto}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
-    h1{font-size:20px;margin:0}
-    .muted{color:var(--muted);font-size:13px}
-    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
-    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .btn{padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:600}
-    .btn-primary{background:var(--accent);color:white}
-    .btn-plain{background:#fff;border:1px solid #e6eef0}
-    input[type=file]{display:none}
-    .file-name{font-size:13px;color:var(--muted)}
-    .map-note{font-size:13px;color:var(--muted);margin-top:8px}
-    /* quiz */
-    .q-box{padding:18px;border-radius:10px;border:1px solid #eef2f6;background:linear-gradient(180deg,#ffffff,#fbfdff)}
-    .question-text{font-size:18px;font-weight:700;margin-bottom:12px}
-    .options{display:grid;gap:10px}
-    .option{
-      padding:12px;border-radius:10px;border:1px solid #e8eef1;background:transparent;
-      cursor:pointer;text-align:right;font-weight:600;
-      transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
-      user-select:none;
-    }
-    .option:hover{transform:translateY(-3px)}
-    .option.disabled{cursor:default;opacity:0.85;transform:none}
-    .option.correct{
-      background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.5);box-shadow:0 6px 20px rgba(16,185,129,0.08);
-    }
-    .option.wrong{
-      background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.35);box-shadow:0 6px 20px rgba(239,68,68,0.06);
-    }
-    .meta{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
-    .progress{font-size:13px;color:var(--muted)}
-    .next-row{display:flex;gap:8px;justify-content:flex-start;align-items:center}
-    .small{font-size:13px;color:var(--muted)}
-    /* result */
-    .result{padding:16px;border-radius:10px;background:linear-gradient(180deg,#fff,#f9fffb);text-align:center}
-    .score{font-size:28px;font-weight:800;margin:6px 0}
-    .details{margin-top:10px;font-size:14px;color:var(--muted)}
-    .hidden{display:none}
-    /* animation for pulse */
-    @keyframes pulseGreen{
-      0%{box-shadow:0 0 0 0 rgba(16,185,129,0.16)}
-      70%{box-shadow:0 0 0 8px rgba(16,185,129,0.04)}
-      100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}
-    }
-    @keyframes pulseRed{
-      0%{box-shadow:0 0 0 0 rgba(239,68,68,0.16)}
-      70%{box-shadow:0 0 0 8px rgba(239,68,68,0.04)}
-      100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}
-    }
-    .option.correct.pulse{animation:pulseGreen .9s ease-out}
-    .option.wrong.pulse{animation:pulseRed .9s ease-out}
-    /* responsive */
-    @media (max-width:600px){
-      .controls{flex-direction:column;align-items:stretch}
-      .meta{flex-direction:column;align-items:flex-start;gap:8px}
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quiz</title>
+<style>
+  body{
+    font-family: system-ui, sans-serif;
+    margin:0;
+    background:#f9fafb;
+    color:#111;
+    direction:rtl;
+    overflow-x:hidden;
+  }
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 18px;
+    background:white;
+    box-shadow:0 2px 8px rgba(0,0,0,0.05);
+    position:sticky;top:0;z-index:10;
+  }
+  h1{margin:0;font-size:18px}
+  .actions{display:flex;gap:10px;align-items:center}
+  button{
+    border:none;
+    padding:8px 14px;
+    border-radius:8px;
+    cursor:pointer;
+    background:#e8ecef;
+    font-weight:600;
+  }
+  button:hover{background:#dbe5ea}
+  .container{
+    max-width:700px;margin:30px auto;padding:20px;
+    background:white;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.05);
+  }
+  .question{
+    font-size:20px;font-weight:700;margin-bottom:16px;
+  }
+  .option{
+    padding:12px 14px;
+    background:#f1f5f9;
+    border-radius:10px;
+    margin-bottom:10px;
+    cursor:pointer;
+    transition:0.2s;
+  }
+  .option:hover{background:#e2e8f0}
+  .option.correct{background:#dcfce7;animation:flashGreen 0.5s}
+  .option.wrong{background:#fee2e2;animation:flashRed 0.5s}
+  @keyframes flashGreen{0%{background:#bbf7d0}100%{background:#dcfce7}}
+  @keyframes flashRed{0%{background:#fecaca}100%{background:#fee2e2}}
+  .progress{
+    position:fixed;top:0;left:0;height:4px;background:#22c55e;
+    width:0%;transition:width 0.3s ease;
+  }
+  .result{
+    text-align:center;
+    font-size:22px;
+    padding:40px 10px;
+  }
+  #idPrompt{
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.5);
+    display:flex;align-items:center;justify-content:center;
+    z-index:9999;
+  }
+  #idPromptBox{
+    background:white;padding:20px;border-radius:12px;
+    width:300px;text-align:center;
+  }
+  input[type=text]{
+    width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-top:8px;
+  }
+</style>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>امتحان تفاعلي — سؤال واحد في كل مرة</h1>
-      <div class="muted">ارفع ملف JSON ثم اضغط ابدأ</div>
-    </header>
-
-    <div class="card">
-      <div class="controls">
-        <label class="btn btn-plain" id="chooseLabel">
-          اختر ملف JSON
-          <input type="file" id="jsonFile" accept=".json" />
-        </label>
-        <button class="btn btn-primary" id="startBtn">ابدأ الامتحان</button>
-        <button class="btn btn-plain" id="shuffleBtn" title="إعادة ترتيب الأسئلة عشوائياً">إعادة ترتيب</button>
-        <div style="flex:1"></div>
-        <div class="file-name" id="fileName">لم يتم اختيار ملف</div>
-      </div>
-      <div class="map-note">صيغة JSON: مصفوفة أسئلة. مثال: <code>[ {"question":"...","options":["A","B"],"correct_index":0} ]</code></div>
-    </div>
-
-    <!-- Quiz card -->
-    <div class="card hidden" id="quizCard" aria-live="polite">
-      <div class="q-box">
-        <div class="question-text" id="questionText">نص السؤال</div>
-        <div class="options" id="optionsList"></div>
-
-        <div class="meta">
-          <div class="progress small" id="progressText">س 1 / 10</div>
-          <div class="next-row">
-            <div class="small" id="feedbackText"></div>
-            <button class="btn btn-primary hidden" id="nextBtn">التالي</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Result card -->
-    <div class="card hidden" id="resultCard">
-      <div class="result">
-        <div class="muted">النتيجة النهائية</div>
-        <div class="score" id="scoreText">0 / 0</div>
-        <div class="details" id="detailsText"></div>
-        <div style="margin-top:12px">
-          <button class="btn btn-primary" id="retryBtn">ابدأ ملف جديد</button>
-          <button class="btn btn-plain" id="downloadJsonBtn">تحميل نسخة JSON للكويز</button>
-        </div>
-      </div>
-    </div>
-
-    <footer style="margin-top:12px" class="muted small">ملاحظة: يعمل أوفلاين — افتح الملف مباشرة في المتصفح. يدعم ملفات JSON فقط.</footer>
+<div class="progress" id="progress"></div>
+<header>
+  <h1 id="quizTitle">تحميل...</h1>
+  <div class="actions">
+    <button id="copyBtn">نسخ الرابط</button>
+    <button id="shareBtn">مشاركة</button>
   </div>
+</header>
 
-  <script>
-    // عناصر
-    const jsonFile = document.getElementById('jsonFile');
-    const fileNameEl = document.getElementById('fileName');
-    const startBtn = document.getElementById('startBtn');
-    const shuffleBtn = document.getElementById('shuffleBtn');
-    const quizCard = document.getElementById('quizCard');
-    const questionText = document.getElementById('questionText');
-    const optionsList = document.getElementById('optionsList');
-    const progressText = document.getElementById('progressText');
-    const nextBtn = document.getElementById('nextBtn');
-    const feedbackText = document.getElementById('feedbackText');
-    const resultCard = document.getElementById('resultCard');
-    const scoreText = document.getElementById('scoreText');
-    const detailsText = document.getElementById('detailsText');
-    const retryBtn = document.getElementById('retryBtn');
-    const downloadJsonBtn = document.getElementById('downloadJsonBtn');
-    const chooseLabel = document.getElementById('chooseLabel');
+<div class="container" id="quizContainer">
+  <div id="questionBox" class="question"></div>
+  <div id="optionsBox"></div>
+</div>
 
-    let questions = [];      // loaded questions (shuffled)
-    let originalQuestions = []; // keep original copy
-    let currentIndex = 0;
-    let score = 0;
-    let answered = false;
+<div class="result" id="resultBox" style="display:none"></div>
 
-    // مساعدة: خلط مصفوفة
-    function shuffleArray(arr){
-      for(let i = arr.length -1; i>0; i--){
-        const j = Math.floor(Math.random()*(i+1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-    }
+<div id="idPrompt" style="display:none">
+  <div id="idPromptBox">
+    <h3>أدخل ID الكويز</h3>
+    <input type="text" id="quizIdInput" placeholder="مثلاً 1761089597">
+    <button id="loadQuizBtn" style="margin-top:10px;background:#22c55e;color:white">تحميل</button>
+  </div>
+</div>
 
-    // قراءة JSON
-    jsonFile.addEventListener('change', async (e)=>{
-      const f = e.target.files[0];
-      if(!f) { fileNameEl.textContent = 'لم يتم اختيار ملف'; return; }
-      fileNameEl.textContent = f.name;
-      try {
-        const txt = await f.text();
-        const parsed = JSON.parse(txt);
-        if(!Array.isArray(parsed)) throw new Error('الـ JSON يجب أن يكون مصفوفة من الأسئلة');
-        // validate basic shape
-        const validated = parsed.map((q, idx) => {
-          if(!q || typeof q.question !== 'string' || !Array.isArray(q.options) || q.options.length < 2) {
-            throw new Error('سطر ' + (idx+1) + ' غير صالح. تأكد من وجود question و options (مصوفة على الأقل طولها 2).');
-          }
-          const correct_index = (typeof q.correct_index === 'number') ? q.correct_index : 0;
-          return {
-            question: String(q.question),
-            options: q.options.map(x => String(x)),
-            correct_index: Number.isInteger(correct_index) ? correct_index : 0
-          };
-        });
-        originalQuestions = validated;
-        questions = validated.slice();
-        // by default shuffle initially
-        shuffleArray(questions);
-        showReadyState();
-      } catch(err){
-        alert('خطأ في قراءة ملف JSON: ' + (err.message || err));
-        fileNameEl.textContent = 'خطأ في الملف';
-        console.error(err);
-      }
-    });
+<audio id="soundCorrect" src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3"></audio>
+<audio id="soundWrong" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
-    // عرض حالة جاهزة
-    function showReadyState(){
-      quizCard.classList.add('hidden');
-      resultCard.classList.add('hidden');
-      startBtn.textContent = 'ابدأ الامتحان';
-    }
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAI21TvGX8jjTbEIDww5GEKcxM9zL6Gkn8",
+  authDomain: "ak-sport-a985e.firebaseapp.com",
+  databaseURL: "https://ak-sport-a985e-default-rtdb.firebaseio.com/",
+  projectId: "ak-sport-a985e",
+  storageBucket: "ak-sport-a985e.appspot.com",
+  messagingSenderId: "922662521404",
+  appId: "1:922662521404:android:0e26b04730ab5dc3ddd139"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-    // زر إعادة ترتيب يدوي
-    shuffleBtn.addEventListener('click', ()=>{
-      if(!questions.length){ alert('لم تقم بتحميل ملف JSON بعد'); return; }
-      shuffleArray(questions);
-      currentIndex = 0;
-      score = 0;
-      showReadyState();
-      alert('تم ترتيب الأسئلة عشوائياً');
-    });
+const titleEl = document.getElementById('quizTitle');
+const qBox = document.getElementById('questionBox');
+const oBox = document.getElementById('optionsBox');
+const resultBox = document.getElementById('resultBox');
+const progressBar = document.getElementById('progress');
+const soundCorrect = document.getElementById('soundCorrect');
+const soundWrong = document.getElementById('soundWrong');
 
-    // بدء الامتحان
-    startBtn.addEventListener('click', ()=>{
-      if(!questions.length){
-        alert('لم تقم بتحميل ملف JSON بعد');
-        return;
-      }
-      currentIndex = 0;
-      score = 0;
-      showQuestion();
-      quizCard.classList.remove('hidden');
-      resultCard.classList.add('hidden');
-      // scroll to quiz
-      quizCard.scrollIntoView({behavior:'smooth'});
-    });
+let quizData = [];
+let current = 0;
+let correctCount = 0;
 
-    // عرض السؤال الحالي
-    function showQuestion(){
-      const q = questions[currentIndex];
-      questionText.textContent = q.question;
-      optionsList.innerHTML = '';
-      feedbackText.textContent = '';
-      nextBtn.classList.add('hidden');
-      answered = false;
+function showQuestion(){
+  if(current >= quizData.length){
+    showResult();
+    return;
+  }
+  const q = quizData[current];
+  qBox.textContent = q.question;
+  oBox.innerHTML = '';
+  q.options.forEach((opt, i)=>{
+    const div = document.createElement('div');
+    div.className='option';
+    div.textContent = opt;
+    div.onclick = ()=>handleAnswer(div,i===q.correct_index);
+    oBox.appendChild(div);
+  });
+  progressBar.style.width = ((current)/quizData.length*100)+'%';
+}
 
-      // render options
-      q.options.forEach((opt, idx) => {
-        const btn = document.createElement('button');
-        btn.className = 'option';
-        btn.type = 'button';
-        btn.textContent = opt;
-        btn.dataset.idx = idx;
-        // عند الضغط
-        btn.addEventListener('click', ()=> handleSelect(btn, idx));
-        optionsList.appendChild(btn);
-      });
+function handleAnswer(el,correct){
+  Array.from(oBox.children).forEach(ch=>ch.onclick=null);
+  if(correct){
+    el.classList.add('correct');
+    soundCorrect.play();
+    correctCount++;
+  }else{
+    el.classList.add('wrong');
+    soundWrong.play();
+  }
+  progressBar.style.width = ((current+1)/quizData.length*100)+'%';
+  setTimeout(()=>{current++;showQuestion();},1500);
+}
 
-      // update progress
-      progressText.textContent = 'س ' + (currentIndex + 1) + ' / ' + questions.length;
-    }
+function showResult(){
+  document.querySelector('.container').style.display='none';
+  const percent = Math.round((correctCount/quizData.length)*100);
+  resultBox.innerHTML = `لقد أجبت بشكل صحيح على <b>${correctCount}</b> من <b>${quizData.length}</b> أسئلة<br>نتيجتك: <b>${percent}%</b> 🎯`;
+  resultBox.style.display='block';
+}
 
-    // اختيار خيار
-    function handleSelect(buttonEl, chosenIdx){
-      if(answered) return;
-      answered = true;
-      const q = questions[currentIndex];
-      const correctIdx = Number.isInteger(q.correct_index) ? q.correct_index : 0;
-      // disable all options
-      optionsList.querySelectorAll('.option').forEach(b => { b.classList.add('disabled'); b.disabled = true; });
-      // find correct button
-      const children = Array.from(optionsList.children);
-      const correctBtn = children.find(b => Number(b.dataset.idx) === correctIdx);
-      // mark chosen
-      if(chosenIdx === correctIdx){
-        // صحيح
-        buttonEl.classList.add('correct','pulse');
-        feedbackText.textContent = 'إجابة صحيحة 🎉';
-        score++;
-      } else {
-        // خطأ
-        buttonEl.classList.add('wrong','pulse');
-        if(correctBtn) correctBtn.classList.add('correct','pulse');
-        feedbackText.textContent = 'إجابة خاطئة';
-      }
+// Copy & Share
+document.getElementById('copyBtn').onclick=()=>{
+  navigator.clipboard.writeText(location.href);
+  alert('تم نسخ الرابط ✅');
+};
+document.getElementById('shareBtn').onclick=()=>{
+  if(navigator.share){
+    navigator.share({title:document.title,text:'شارك هذا الكويز',url:location.href});
+  }else{
+    alert('المشاركة غير مدعومة في هذا المتصفح');
+  }
+};
 
-      // Show next button (or finish)
-      if(currentIndex + 1 < questions.length){
-        nextBtn.textContent = 'التالي';
-        nextBtn.classList.remove('hidden');
-        nextBtn.focus();
-      } else {
-        nextBtn.textContent = 'عرض النتيجة';
-        nextBtn.classList.remove('hidden');
-        nextBtn.focus();
-      }
+// load quiz
+async function loadQuiz(id){
+  titleEl.textContent='جارٍ التحميل...';
+  const snap = await db.ref('/'+id).get();
+  if(!snap.exists()){ alert('الكويز غير موجود'); return;}
+  const data = snap.val();
+  titleEl.textContent=data.name || 'كويز';
+  const res = await fetch(data.json);
+  quizData = await res.json();
+  current=0;correctCount=0;
+  document.querySelector('.container').style.display='';
+  resultBox.style.display='none';
+  showQuestion();
+}
 
-      // small delay قبل السماح للانتقال التلقائي؟ لا، ننتظر ضغط المستخدم
-    }
+const params = new URLSearchParams(location.search);
+let quizId = params.get('id');
 
-    // التالي
-    nextBtn.addEventListener('click', ()=>{
-      if(!answered) return;
-      currentIndex++;
-      if(currentIndex >= questions.length){
-        showResult();
-      } else {
-        showQuestion();
-        // scroll to top of quiz card
-        quizCard.scrollIntoView({behavior:'smooth'});
-      }
-    });
-
-    // إظهار النتيجة داخل الصفحة (خيارك رقم 2)
-    function showResult(){
-      quizCard.classList.add('hidden');
-      resultCard.classList.remove('hidden');
-      scoreText.textContent = `${score} / ${questions.length}`;
-      const percent = Math.round((score / questions.length) * 100);
-      let msg = `أنت حصلت على ${score} من ${questions.length} — ${percent}%`;
-      detailsText.textContent = msg;
-      resultCard.scrollIntoView({behavior:'smooth'});
-    }
-
-    // إعادة البدء بملف جديد
-    retryBtn.addEventListener('click', ()=>{
-      // reset
-      jsonFile.value = '';
-      fileNameEl.textContent = 'لم يتم اختيار ملف';
-      questions = [];
-      originalQuestions = [];
-      currentIndex = 0;
-      score = 0;
-      quizCard.classList.add('hidden');
-      resultCard.classList.add('hidden');
-      startBtn.textContent = 'ابدأ الامتحان';
-      feedbackText.textContent = '';
-    });
-
-    // تنزيل نسخة JSON (التي تم تحميلها) إذا احتجت
-    downloadJsonBtn.addEventListener('click', ()=>{
-      if(!originalQuestions.length){ alert('لا يوجد كويز للتحميل'); return; }
-      const blob = new Blob([JSON.stringify(originalQuestions, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'quiz.json';
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    // تحسين تجربة: سحب الملف عبر الزر الظاهر
-    chooseLabel.addEventListener('keydown', (e)=> {
-      if(e.key === 'Enter' || e.key === ' ') jsonFile.click();
-    });
-
-    // اختصار: الضغط Enter على زر start لو الملف موجود
-    startBtn.addEventListener('keydown', (e)=> {
-      if(e.key === 'Enter') startBtn.click();
-    });
-
-    // منع ترك رسائل console غير ضرورية ولكن احتفظ بالأخطاء
-    window.addEventListener('error', (ev)=> {
-      console.error('Error', ev.error || ev.message);
-    });
-  </script>
+if(!quizId){
+  document.getElementById('idPrompt').style.display='flex';
+  document.getElementById('loadQuizBtn').onclick=()=>{
+    const entered = document.getElementById('quizIdInput').value.trim();
+    if(!entered)return;
+    document.getElementById('idPrompt').style.display='none';
+    loadQuiz(entered);
+  };
+}else{
+  loadQuiz(quizId);
+}
+</script>
 </body>
 </html>

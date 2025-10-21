@@ -44,9 +44,9 @@
   progress::-webkit-progress-value{background:var(--accent);border-radius:6px;}
   progress::-moz-progress-bar{background:var(--accent);border-radius:6px;}
 </style>
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 </head>
 <body>
@@ -114,142 +114,124 @@
 </div>
 
 <script>
-  // Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyAI21TvGX8jjTbEIDww5GEKcxM9zL6Gkn8",
-    authDomain: "ak-sport-a985e.firebaseapp.com",
-    projectId: "ak-sport-a985e",
-    storageBucket: "ak-sport-a985e.appspot.com",
-    messagingSenderId: "922662521404",
-    appId: "1:922662521404:android:0e26b04730ab5dc3ddd139",
-    databaseURL: "https://ak-sport-a985e-default-rtdb.firebaseio.com/"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const storage = firebase.storage();
-  const database = firebase.database();
+const firebaseConfig = {
+  apiKey: "AIzaSyAI21TvGX8jjTbEIDww5GEKcxM9zL6Gkn8",
+  authDomain: "ak-sport-a985e.firebaseapp.com",
+  databaseURL: "https://ak-sport-a985e-default-rtdb.firebaseio.com/",
+  projectId: "ak-sport-a985e",
+  storageBucket: "ak-sport-a985e.appspot.com",
+  messagingSenderId: "922662521404",
+  appId: "1:922662521404:android:0e26b04730ab5dc3ddd139"
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
 
-  // Elements
-  const jsonFile = document.getElementById('jsonFile');
-  const chooseBtn = document.getElementById('chooseBtn');
-  const pasteBtn = document.getElementById('pasteBtn');
-  const jsonText = document.getElementById('jsonText');
-  const fileNameEl = document.getElementById('fileName');
-  const genBtn = document.getElementById('genBtn');
-  const serialIdEl = document.getElementById('serialId');
-  const previewBtn = document.getElementById('previewBtn');
-  const previewArea = document.getElementById('previewArea');
-  const previewList = document.getElementById('previewList');
-  const publishBtn = document.getElementById('publishBtn');
-  const publishStatus = document.getElementById('publishStatus');
-  const resultArea = document.getElementById('resultArea');
-  const shareLink = document.getElementById('shareLink');
-  const copyBtn = document.getElementById('copyBtn');
-  const copyMsg = document.getElementById('copyMsg');
-  const statusTop = document.getElementById('statusTop');
-  const quizNameInput = document.getElementById('quizName');
-  const progressBar = document.getElementById('uploadProgress');
+// عناصر الصفحة
+const jsonFile = document.getElementById('jsonFile');
+const chooseBtn = document.getElementById('chooseBtn');
+const pasteBtn = document.getElementById('pasteBtn');
+const jsonText = document.getElementById('jsonText');
+const fileNameEl = document.getElementById('fileName');
+const genBtn = document.getElementById('genBtn');
+const serialIdEl = document.getElementById('serialId');
+const previewBtn = document.getElementById('previewBtn');
+const previewArea = document.getElementById('previewArea');
+const previewList = document.getElementById('previewList');
+const publishBtn = document.getElementById('publishBtn');
+const publishStatus = document.getElementById('publishStatus');
+const resultArea = document.getElementById('resultArea');
+const shareLink = document.getElementById('shareLink');
+const copyBtn = document.getElementById('copyBtn');
+const copyMsg = document.getElementById('copyMsg');
+const statusTop = document.getElementById('statusTop');
+const quizNameInput = document.getElementById('quizName');
+const progressBar = document.getElementById('uploadProgress');
 
-  // LocalStorage load
-  window.addEventListener('DOMContentLoaded', ()=>{
-    const last = localStorage.getItem('lastQuizJson');
-    if(last) jsonText.value = last;
-  });
+function genSerial(){return String(Math.floor(Date.now()/1000));}
+function setTopStatus(t){statusTop.textContent=t;}
+function showStatus(t,isError=false){publishStatus.textContent=t;publishStatus.style.color=isError?'var(--danger)':'inherit';}
+function escapeHtml(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');}
 
-  function genSerial(){ return String(Math.floor(Date.now()/1000)); }
-  function setTopStatus(t){ statusTop.textContent = t; }
-  function showStatus(t,isError=false){
-    publishStatus.textContent=t;
-    publishStatus.style.color=isError?'var(--danger)':'inherit';
+chooseBtn.onclick=()=>jsonFile.click();
+jsonFile.onchange=async(e)=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  fileNameEl.textContent=f.name+' — '+Math.round(f.size/1024)+' KB';
+  const txt=await f.text();
+  jsonText.value=txt;
+  localStorage.setItem('lastQuizJson',txt);
+};
+pasteBtn.onclick=()=>jsonText.focus();
+genBtn.onclick=()=>serialIdEl.value=genSerial();
+
+previewBtn.onclick=()=>{
+  const txt=jsonText.value.trim();
+  if(!txt){alert('أضف JSON عبر رفع الملف أو اللصق');return;}
+  try{
+    const arr=JSON.parse(txt);
+    if(!Array.isArray(arr))throw new Error('الملف ليس مصفوفة');
+    previewList.innerHTML='';
+    arr.slice(0,5).forEach((q,i)=>{
+      const div=document.createElement('div');
+      div.innerHTML=`<b>${i+1}. ${escapeHtml(q.question||'---')}</b><div class="small">${(q.options||[]).slice(0,4).map((o,j)=>`${j+1}. ${escapeHtml(o)}`).join(' — ')}</div>`;
+      previewList.appendChild(div);
+    });
+    previewArea.style.display='';
+    setTopStatus('معاينة ناجحة');
+  }catch(e){alert('JSON غير صالح: '+e.message);previewArea.style.display='none';}
+};
+
+copyBtn.onclick=async()=>{
+  try{await navigator.clipboard.writeText(shareLink.value);
+    copyMsg.style.display='';setTimeout(()=>copyMsg.style.display='none',2500);}catch(e){alert('فشل النسخ');}
+};
+
+publishBtn.onclick=async()=>{
+  const txt=jsonText.value.trim();
+  if(!txt){alert('أضف JSON عبر رفع الملف أو اللصق');return;}
+  let arr;
+  try{arr=JSON.parse(txt);if(!Array.isArray(arr))throw new Error();}
+  catch(e){alert('JSON غير صالح');return;}
+  localStorage.setItem('lastQuizJson',txt);
+
+  const id=serialIdEl.value||genSerial();
+  serialIdEl.value=id;
+  const name=quizNameInput.value.trim()||'امتحان دون عنوان';
+  publishBtn.disabled=true;
+  setTopStatus('جارٍ الحفظ...');
+  showStatus('جارٍ الحفظ...');
+  progressBar.style.display='block';
+  progressBar.value=30;
+
+  let userIp='unknown';
+  try{
+    const r=await fetch('https://api.ipify.org?format=json');
+    const j=await r.json();userIp=j.ip||'unknown';
+  }catch(e){}
+
+  try{
+    await database.ref('/'+id).set({
+      name:name,
+      jsonText:txt,
+      info:{ip:userIp,time:new Date().toISOString()}
+    });
+
+    const share=`${location.origin}/Aser/qz.html?id=${id}`;
+    shareLink.value=share;
+    resultArea.style.display='';
+    progressBar.value=100;
+    setTimeout(()=>progressBar.style.display='none',600);
+    publishBtn.disabled=false;
+    setTopStatus('تم النشر بنجاح ✅');
+    showStatus('تم الحفظ بنجاح');
+  }catch(e){
+    console.error(e);
+    progressBar.style.display='none';
+    publishBtn.disabled=false;
+    setTopStatus('فشل أثناء النشر ❌');
+    showStatus('خطأ أثناء الحفظ',true);
   }
-  function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-
-  chooseBtn.onclick=()=>jsonFile.click();
-  jsonFile.onchange=async(e)=>{
-    const f=e.target.files[0];
-    if(!f) return;
-    fileNameEl.textContent=f.name+' — '+Math.round(f.size/1024)+' KB';
-    const txt=await f.text();
-    jsonText.value=txt;
-    localStorage.setItem('lastQuizJson',txt);
-  };
-  pasteBtn.onclick=()=>jsonText.focus();
-  genBtn.onclick=()=>serialIdEl.value=genSerial();
-
-  previewBtn.onclick=()=>{
-    const txt=jsonText.value.trim();
-    if(!txt){alert('أضف JSON عبر رفع الملف أو اللصق');return;}
-    try{
-      const arr=JSON.parse(txt);
-      if(!Array.isArray(arr))throw new Error('الملف ليس مصفوفة');
-      previewList.innerHTML='';
-      arr.slice(0,5).forEach((q,i)=>{
-        const div=document.createElement('div');
-        div.innerHTML=`<b>${i+1}. ${escapeHtml(q.question||'---')}</b><div class="small">${(q.options||[]).slice(0,4).map((o,j)=>`${j+1}. ${escapeHtml(o)}`).join(' — ')}</div>`;
-        previewList.appendChild(div);
-      });
-      previewArea.style.display='';
-      setTopStatus('معاينة ناجحة');
-    }catch(e){alert('JSON غير صالح: '+e.message);previewArea.style.display='none';}
-  };
-
-  copyBtn.onclick=async()=>{
-    try{await navigator.clipboard.writeText(shareLink.value);
-      copyMsg.style.display='';setTimeout(()=>copyMsg.style.display='none',2500);}catch(e){alert('فشل النسخ');}
-  };
-
-  publishBtn.onclick=async()=>{
-    const txt=jsonText.value.trim();
-    if(!txt){alert('أضف JSON عبر رفع الملف أو اللصق');return;}
-    let arr;
-    try{arr=JSON.parse(txt);if(!Array.isArray(arr))throw new Error();}
-    catch(e){alert('JSON غير صالح');return;}
-    localStorage.setItem('lastQuizJson',txt);
-
-    const id=serialIdEl.value||genSerial();
-    serialIdEl.value=id;
-    const name=quizNameInput.value.trim()||'امتحان دون عنوان';
-    publishBtn.disabled=true;
-    setTopStatus('جارٍ رفع الملف...');
-    showStatus('جارٍ الرفع...');
-    progressBar.value=0;
-    progressBar.style.display='block';
-
-    let userIp='unknown';
-    try{
-      const r=await fetch('https://api.ipify.org?format=json');
-      const j=await r.json();userIp=j.ip||'unknown';
-    }catch(e){}
-
-    try{
-      const blob=new Blob([txt],{type:'application/json'});
-      const ref=storage.ref().child(`quizzes/${id}.json`);
-      const uploadTask=ref.put(blob,{contentType:'application/json'});
-      uploadTask.on('state_changed',(snap)=>{
-        const p=(snap.bytesTransferred/snap.totalBytes)*100;
-        progressBar.value=p;
-      });
-      await uploadTask;
-      const url=await ref.getDownloadURL();
-      await database.ref('/'+id).set({
-        name:name,
-        json:url,
-        info:{ip:userIp,time:new Date().toISOString()}
-      });
-      const share=`${location.origin}/Aser/qz.html?id=${id}`;
-      shareLink.value=share;
-      resultArea.style.display='';
-      progressBar.style.display='none';
-      publishBtn.disabled=false;
-      setTopStatus('تم النشر بنجاح ✅');
-      showStatus('تم الرفع بنجاح');
-    }catch(e){
-      console.error(e);
-      progressBar.style.display='none';
-      publishBtn.disabled=false;
-      setTopStatus('فشل أثناء النشر ❌');
-      showStatus('خطأ أثناء الرفع',true);
-    }
-  };
+};
 </script>
 </body>
 </html>

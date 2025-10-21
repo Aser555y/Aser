@@ -225,9 +225,18 @@ async function loadQuiz(id){
     const data = snap.val();
     titleEl.textContent = data.name || 'Quiz';
 
-    const res = await fetch(data.json);
-    if (!res.ok) throw new Error('تعذر تحميل ملف JSON');
-    const json = await res.json();
+// نفترض أن data.json يحتوي على نص JSON كامل
+let json;
+try {
+  json = JSON.parse(data.json); // تحويل النص إلى مصفوفة/كائن
+} catch (err) {
+  throw new Error('خطأ في صيغة JSON');
+}
+
+if (!Array.isArray(json) || json.length === 0)
+  throw new Error('الملف لا يحتوي أسئلة');
+
+quizData = json;
     if (!Array.isArray(json) || json.length === 0)
       throw new Error('الملف لا يحتوي أسئلة');
 

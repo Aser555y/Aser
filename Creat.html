@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Qz.com – تكوين الامتحان</title>
+  <style>
+    :root{
+      --bg:#f6f8fa; --card:#fff; --muted:#6b7280; --accent:#0ea5a4;
+      --danger:#ef4444; --success:#16a34a;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      background:linear-gradient(180deg,#f3f6f8,#eef4f7);color:#071126;padding:24px;direction:rtl;
+    }
+    .wrap{max-width:980px;margin:0 auto}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    h1{margin:0;font-size:20px}
+    .muted{color:var(--muted);font-size:13px}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 8px 28px rgba(10,20,30,0.06);margin-bottom:14px}
+    label.input{display:block;margin-bottom:8px;font-weight:700}
+    input[type=text], textarea, select{
+      width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef0;margin-top:6px;font-size:14px;
+    }
+    textarea{height:120px;resize:vertical}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .btn{padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:700}
+    .btn-primary{background:var(--accent);color:white}
+    .btn-plain{background:#fff;border:1px solid #e6eef0}
+    .small{font-size:13px;color:var(--muted)}
+    .file-info{font-size:13px;color:var(--muted);margin-top:8px}
+    .preview{background:#fbfdff;border-radius:10px;padding:12px;margin-top:12px;border:1px solid #eef6f8}
+    .success{color:var(--success);font-weight:700}
+    .error{color:var(--danger);font-weight:700}
+    .link-box{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+    .copy-success{color:var(--success);font-weight:700;margin-left:8px}
+    @media(max-width:720px){header{flex-direction:column;align-items:flex-start} .row{flex-direction:column}}
+  </style>
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Qz.com – تكوين الامتحان</h1>
+        <div class="small muted">انشئ كويز وشارك رابطه بسهولة</div>
+      </div>
+      <div class="small muted" id="statusTop">جاهز</div>
+    </header>
+
+    <div class="card">
+      <div>
+        <label class="input">اسم الكويز</label>
+        <input type="text" id="quizName" placeholder="امتحان دون عنوان" />
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="input">رفع JSON (أو لصق النص في الأسفل)</label>
+        <div class="row" style="align-items:center">
+          <label class="btn btn-plain" id="chooseBtn">اختر ملف JSON
+            <input type="file" id="jsonFile" accept=".json" style="display:none" />
+          </label>
+          <button class="btn btn-plain" id="pasteBtn">ألصق JSON</button>
+          <div class="small" id="fileName">لم يتم اختيار ملف</div>
+        </div>
+
+        <textarea id="jsonText" placeholder='أو الصق محتوى JSON هنا (مصفوفة أسئلة)...'></textarea>
+        <div class="file-info small">صيغة JSON المطلوبة: مصفوفة من الكائنات، كل كائن يحتوي على { "question": "...", "options": ["A","B"], "correct_index": 0 }</div>
+
+        <div style="margin-top:12px" class="row">
+          <div>
+            <label class="input">Serial ID (تلقائي)</label>
+            <input type="text" id="serialId" readonly />
+          </div>
+          <div style="align-self:end">
+            <button class="btn btn-plain" id="genBtn">توليد ID</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px" class="row">
+          <button class="btn btn-primary" id="previewBtn">معاينة</button>
+          <button class="btn btn-primary" id="publishBtn">نشر</button>
+          <div style="flex:1"></div>
+          <div class="small muted" id="publishStatus"></div>
+        </div>
+
+        <div id="previewArea" class="preview" style="display:none">
+          <div style="font-weight:700;margin-bottom:8px">معاينة (أول 5 أسئلة):</div>
+          <div id="previewList"></div>
+        </div>
+
+        <div id="resultArea" style="display:none;margin-top:12px">
+          <div style="font-weight:700">رابط المشاركة:</div>
+          <div class="link-box">
+            <input type="text" id="shareLink" readonly style="padding:8px;border-radius:8px;border:1px solid #e6eef0;flex:1" />
+            <button class="btn btn-plain" id="copyBtn">نسخ الرابط</button>
+            <div id="copyMsg" class="copy-success" style="display:none">تم النسخ!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:700">سجل وقاعدة البيانات (نموذج)</div>
+      <div class="small muted" style="margin-top:8px">بعد النشر، سيُحفظ سجلّ الكويز في Realtime DB تحت الـ ID المختار.</div>
+      <pre id="dbPreview" style="background:#fbfdff;padding:10px;border-radius:8px;border:1px solid #eef6f8;margin-top:8px;white-space:pre-wrap"></pre>
+    </div>
+
+    <footer style="margin-top:12px" class="small muted">ملاحظة: تأكد من إعداد قواعد Firebase (Storage + Realtime DB) للسماح بالكتابة من العميل أو استعمل طرق تأمين لاحقة.</footer>
+  </div>
+
+<script>
+  /***** تكوين فايربيس (استبدل بالقيم التي أعطيتها) ******/
+  const firebaseConfig = {
+    apiKey: "AIzaSyAI21TvGX8jjTbEIDww5GEKcxM9zL6Gkn8",
+    authDomain: "ak-sport-a985e.firebaseapp.com",
+    projectId: "ak-sport-a985e",
+    storageBucket: "ak-sport-a985e.appspot.com",
+    messagingSenderId: "922662521404",
+    appId: "1:922662521404:android:0e26b04730ab5dc3ddd139",
+    databaseURL: "https://ak-sport-a985e-default-rtdb.firebaseio.com/"
+  };
+  // init firebase
+  firebase.initializeApp(firebaseConfig);
+  const storage = firebase.storage();
+  const database = firebase.database();
+
+  // عناصر DOM
+  const jsonFile = document.getElementById('jsonFile');
+  const chooseBtn = document.getElementById('chooseBtn');
+  const pasteBtn = document.getElementById('pasteBtn');
+  const jsonText = document.getElementById('jsonText');
+  const fileNameEl = document.getElementById('fileName');
+  const genBtn = document.getElementById('genBtn');
+  const serialIdEl = document.getElementById('serialId');
+  const previewBtn = document.getElementById('previewBtn');
+  const previewArea = document.getElementById('previewArea');
+  const previewList = document.getElementById('previewList');
+  const publishBtn = document.getElementById('publishBtn');
+  const publishStatus = document.getElementById('publishStatus');
+  const resultArea = document.getElementById('resultArea');
+  const shareLink = document.getElementById('shareLink');
+  const copyBtn = document.getElementById('copyBtn');
+  const copyMsg = document.getElementById('copyMsg');
+  const dbPreview = document.getElementById('dbPreview');
+  const statusTop = document.getElementById('statusTop');
+  const quizNameInput = document.getElementById('quizName');
+
+  // utils
+  function genSerial() {
+    return String(Math.floor(Date.now() / 1000)); // seconds-based serial
+  }
+  function showStatus(text, isError=false) {
+    publishStatus.textContent = text;
+    publishStatus.style.color = isError ? 'var(--danger)' : 'inherit';
+  }
+  function setTopStatus(t) { statusTop.textContent = t; }
+
+  // choose file handler
+  chooseBtn.addEventListener('click', ()=> jsonFile.click());
+  jsonFile.addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    if(!f) return;
+    fileNameEl.textContent = f.name + ' — ' + Math.round(f.size/1024) + ' KB';
+    try {
+      const txt = await f.text();
+      jsonText.value = txt;
+    } catch(err){
+      console.error(err);
+      showStatus('خطأ في قراءة الملف', true);
+    }
+  });
+
+  // paste sample handler (focusses the textarea)
+  pasteBtn.addEventListener('click', ()=> {
+    jsonText.focus();
+    jsonText.scrollIntoView({behavior:'smooth'});
+  });
+
+  // generate serial
+  genBtn.addEventListener('click', ()=>{
+    serialIdEl.value = genSerial();
+  });
+
+  // preview
+  previewBtn.addEventListener('click', ()=>{
+    const txt = jsonText.value.trim();
+    if(!txt){ alert('أضف JSON عبر رفع الملف أو اللصق'); return; }
+    try {
+      const parsed = JSON.parse(txt);
+      if(!Array.isArray(parsed)) { alert('الـ JSON يجب أن يكون مصفوفة من الأسئلة'); return; }
+      // show preview: first 5
+      previewList.innerHTML = '';
+      parsed.slice(0,5).forEach((q,i)=>{
+        const div = document.createElement('div');
+        div.style.marginBottom = '8px';
+        div.innerHTML = `<strong>${i+1}. ${escapeHtml(String(q.question||'---'))}</strong>
+          <div class="small" style="margin-top:6px">${(q.options && q.options.slice(0,4).map((o,j)=> (j+1)+'. '+escapeHtml(String(o))).join(' — ')) || ''}</div>`;
+        previewList.appendChild(div);
+      });
+      previewArea.style.display = '';
+      setTopStatus('معاينة ناجحة');
+    } catch(err) {
+      alert('JSON غير صالح: ' + (err.message || err));
+      previewArea.style.display = 'none';
+      setTopStatus('خطأ في الـ JSON');
+    }
+  });
+
+  // copy link
+  copyBtn.addEventListener('click', async ()=>{
+    const val = shareLink.value;
+    try {
+      await navigator.clipboard.writeText(val);
+      copyMsg.style.display = '';
+      setTimeout(()=> copyMsg.style.display='none', 2500);
+    } catch(e){
+      alert('فشل النسخ: افتح الصفحة في متصفح يدعم النسخ للوحة الحافظة.');
+    }
+  });
+
+  // publish flow
+  publishBtn.addEventListener('click', async ()=>{
+    // validations
+    const txt = jsonText.value.trim();
+    if(!txt){ alert('أضف JSON عبر رفع الملف أو اللصق'); return; }
+    let parsed;
+    try {
+      parsed = JSON.parse(txt);
+      if(!Array.isArray(parsed)) { alert('الـ JSON يجب أن يكون مصفوفة من الأسئلة'); return; }
+    } catch(err) {
+      alert('JSON غير صالح: ' + (err.message || err));
+      return;
+    }
+
+    // prepare meta
+    const id = serialIdEl.value && serialIdEl.value.trim() ? serialIdEl.value.trim() : genSerial();
+    serialIdEl.value = id;
+    const name = quizNameInput.value && quizNameInput.value.trim() ? quizNameInput.value.trim() : 'امتحان دون عنوان';
+    setTopStatus('جاري رفع الملف...');
+    showStatus('جارٍ الرفع...');
+
+    // try fetch user ip (best-effort)
+    let userIp = 'unknown';
+    try {
+      const r = await fetch('https://api.ipify.org?format=json');
+      const j = await r.json();
+      if(j && j.ip) userIp = j.ip;
+    } catch(e){
+      console.warn('IP fetch failed', e);
+    }
+
+    // Storage path
+    const storagePath = `quizzes/${id}.json`;
+    try {
+      // upload raw string using putString with data_url?? use putString with 'raw' isn't supported in compat; use Blob via put()
+      const blob = new Blob([txt], { type: 'application/json' });
+      const ref = storage.ref().child(storagePath);
+      const uploadTaskSnapshot = await ref.put(blob, { contentType: 'application/json' });
+
+      // get download URL
+      const downloadURL = await uploadTaskSnapshot.ref.getDownloadURL();
+
+      // write to Realtime DB
+      const timeISO = new Date().toISOString();
+      const info = {
+        ip: userIp,
+        time: timeISO
+      };
+      const dbPayload = {
+        name: name,
+        json: downloadURL,
+        info: info
+      };
+
+      // save under /<id> node
+      await database.ref('/' + id).set(dbPayload);
+
+      // show produced link
+      const share = `${location.origin}/Aser/qz.html?id=${id}`;
+      shareLink.value = share;
+      resultArea.style.display = '';
+      setTopStatus('تم النشر');
+      showStatus('تم النشر بنجاح');
+      // show db preview
+      dbPreview.textContent = JSON.stringify({ [id]: dbPayload }, null, 2);
+    } catch(err) {
+      console.error('Publish error', err);
+      setTopStatus('خطأ أثناء النشر');
+      showStatus('فشل أثناء النشر: ' + (err.message||err), true);
+      alert('حدث خطأ أثناء النشر. راجع قواعد Firebase أو اتصال الإنترنت. (انظر Console)');
+    }
+  });
+
+  // small helper: escapeHtml
+  function escapeHtml(s){
+    return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+  }
+</script>
+</body>
+</html>

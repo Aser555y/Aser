@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Excel → Interactive Quiz</title>
+  <style>
+    :root{--bg:#f3f4f6;--card:#fff;--accent:#0ea5a4;--muted:#6b7280}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;padding:18px;background:var(--bg);color:#111}
+    .container{max-width:980px;margin:0 auto}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{font-size:20px;margin:0}
+    .card{background:var(--card);border-radius:10px;padding:16px;box-shadow:0 6px 18px rgba(15,23,42,0.06);margin-bottom:14px}
+    .muted{color:var(--muted);font-size:13px}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+    .btn-primary{background:var(--accent);color:white}
+    .btn-plain{background:transparent;border:1px solid #e5e7eb}
+    input[type=file]{display:none}
+    select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px solid #e6eef0;margin-top:6px}
+    .grid{display:grid;gap:12px}
+    .grid-cols-2{grid-template-columns:1fr 1fr}
+    .q-block{padding:12px;border-radius:8px;border:1px solid #eef2f5;background:#fbfdfe}
+    .opt{padding:8px;border-radius:6px;border:1px solid #eef2f5;cursor:pointer}
+    .opt:hover{background:#f8fafb}
+    .correct{outline:2px solid #34d399}
+    .small{font-size:13px}
+    .right{display:flex;gap:8px;align-items:center}
+    footer{font-size:13px;color:var(--muted);margin-top:12px}
+    @media(max-width:700px){.grid-cols-2{grid-template-columns:1fr}}
+  </style>
+</head>
+<body dir="rtl">
+  <div class="container">
+    <header>
+      <h1>Excel → امتحان تفاعلي (نسخة HTML واحدة)</h1>
+      <div class="muted">جاهز للاستخدام: ارفع ملف .xlsx أو .csv</div>
+    </header>
+
+    <div class="card">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <label class="btn btn-plain" title="Upload Excel">
+          اختر ملف
+          <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" />
+        </label>
+        <button id="autoMapBtn" class="btn">Map تلقائي</button>
+        <button id="buildBtn" class="btn btn-primary">بناء الكويز</button>
+        <button id="exportJsonBtn" class="btn" title="Download quiz JSON">حفظ JSON</button>
+        <span class="muted small" id="fileName" style="margin-left:8px"></span>
+      </div>
+
+      <div style="margin-top:10px" class="muted small">
+        تنسيق الأعمدة المقترح: <code>question, option1, option2, option3, option4, correct_index, time_limit_seconds</code><br>
+        <span class="muted">correct_index ممكن يكون رقم (1-based أو 0-based) أو نص مطابق للخيار الصحيح.</span>
+      </div>
+    </div>
+
+    <div id="mapCard" class="card" style="display:none">
+      <h3 style="margin-top:0">تحديد أعمدة الملف</h3>
+      <div class="grid grid-cols-2" id="mapGrid">
+        <!-- dynamic -->
+      </div>
+      <div style="margin-top:12px;text-align:left">
+        <button id="backToUpload" class="btn btn-plain">تغيير الملف</button>
+        <button id="buildFromMap" class="btn btn-primary">بناء من الماب</button>
+      </div>
+    </div>
+
+    <div id="previewCard" class="card" style="display:none">
+      <h3 style="margin-top:0">معاينة الأسئلة (<span id="qCount"></span>)</h3>
+      <div id="previewList" style="display:grid;gap:8px;max-height:360px;overflow:auto"></div>
+      <div style="margin-top:12px;text-align:left">
+        <button id="editMap" class="btn btn-plain">تعديل الماب</button>
+        <button id="startQuiz" class="btn btn-primary">ابدأ الاختبار</button>
+      </div>
+    </div>
+
+    <div id="quizCard" class="card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="small">سؤال <span id="currentIndex">0</span> / <span id="totalQ">0</span></div>
+        <div class="small">وقت متبقي: <span id="timeLeft">--</span>s</div>
+      </div>
+      <div id="questionArea" style="margin-top:12px"></div>
+    </div>
+
+    <div id="resultCard" class="card" style="display:none">
+      <h3 style="margin-top:0">النتيجة</h3>
+      <div id="scoreText" class="small"></div>
+      <div id="resultsList" style="margin-top:8px;display:grid;gap:8px"></div>
+      <div style="margin-top:12px;text-align:left">
+        <button id="restartBtn" class="btn btn-primary">ابدأ ملف جديد</button>
+      </div>
+    </div>
+
+    <footer>ملاحظة: يعمل تماماً في المتصفح. لو تريد ربطه بتيليجرام أو حفظ النتائج تلقائياً في Google Sheets أقدر أضيف الخاصية.</footer>
+  </div>
+
+  <!-- SheetJS (xlsx) from CDN -->
+  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <script>
+    // عناصر DOM
+    const fileInput = document.getElementById('fileInput');
+    const fileNameEl = document.getElementById('fileName');
+    const mapCard = document.getElementById('mapCard');
+    const mapGrid = document.getElementById('mapGrid');
+    const previewCard = document.getElementById('previewCard');
+    const previewList = document.getElementById('previewList');
+    const qCount = document.getElementById('qCount');
+    const quizCard = document.getElementById('quizCard');
+    const questionArea = document.getElementById('questionArea');
+    const currentIndexEl = document.getElementById('currentIndex');
+    const totalQEl = document.getElementById('totalQ');
+    const timeLeftEl = document.getElementById('timeLeft');
+    const resultCard = document.getElementById('resultCard');
+    const scoreText = document.getElementById('scoreText');
+    const resultsList = document.getElementById('resultsList');
+
+    const autoMapBtn = document.getElementById('autoMapBtn');
+    const buildBtn = document.getElementById('buildBtn');
+    const buildFromMap = document.getElementById('buildFromMap');
+    const editMap = document.getElementById('editMap');
+    const startQuizBtn = document.getElementById('startQuiz');
+    const exportJsonBtn = document.getElementById('exportJsonBtn');
+    const backToUpload = document.getElementById('backToUpload');
+    const restartBtn = document.getElementById('restartBtn');
+
+    let rawRows = [];
+    let headers = [];
+    let mappings = {
+      question: '', option1:'', option2:'', option3:'', option4:'', correct_index:'', time_limit_seconds:''
+    };
+    let quizItems = [];
+    let answers = [];
+    let timer = null;
+    let currentIndex = 0;
+
+    function setVisible(el, show) { el.style.display = show ? '' : 'none'; }
+
+    fileInput.addEventListener('change', async (ev) => {
+      const f = ev.target.files[0];
+      if (!f) return;
+      fileNameEl.textContent = f.name;
+      const data = await f.arrayBuffer();
+      let workbook;
+      try {
+        workbook = XLSX.read(data, { type: 'array' });
+      } catch(err) {
+        alert('خطأ في قراءة الملف. جرب CSV أو XLSX صالح.');
+        return;
+      }
+      const firstSheet = workbook.SheetNames[0];
+      const ws = workbook.Sheets[firstSheet];
+      rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      headers = rawRows.length ? Object.keys(rawRows[0]) : [];
+      if (!headers.length) { alert('الملف فارغ أو التنسيق غير صالح.'); return; }
+      showMapUI();
+    });
+
+    function showMapUI(){
+      mapGrid.innerHTML = '';
+      const keys = ['question','option1','option2','option3','option4','correct_index','time_limit_seconds'];
+      const labels = {
+        question:'Question', option1:'Option 1', option2:'Option 2', option3:'Option 3', option4:'Option 4',
+        correct_index:'Correct index/answer', time_limit_seconds:'Time limit (sec)'
+      };
+      keys.forEach(k=>{
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `<label style="font-size:13px">${labels[k]}</label>
+          <select data-key="${k}"><option value="">-- اختر عمود --</option>
+          ${headers.map(h=>`<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`).join('')}
+          </select>`;
+        mapGrid.appendChild(wrap);
+      });
+      setVisible(mapCard, true);
+      setVisible(previewCard, false);
+      setVisible(quizCard, false);
+      setVisible(resultCard, false);
+      // reset mappings
+      mappings = {question:'',option1:'',option2:'',option3:'',option4:'',correct_index:'',time_limit_seconds:''};
+      // attach change listeners
+      mapGrid.querySelectorAll('select').forEach(s=>{
+        s.addEventListener('change', ()=> mappings[s.dataset.key] = s.value);
+      });
+    }
+
+    autoMapBtn.addEventListener('click', ()=>{
+      // try auto map
+      const lower = headers.map(h=>h.toLowerCase());
+      const candidates = {
+        question: ['question','q','text','سؤال','question_ar'],
+        option1: ['option1','a','choice1','answer1','opt1','a)'],
+        option2: ['option2','b','choice2','answer2','opt2','b)'],
+        option3: ['option3','c','choice3','answer3','opt3','c)'],
+        option4: ['option4','d','choice4','answer4','opt4','d)'],
+        correct_index: ['correct_index','correct','answer','correct_answer','correctoption','correct option','الإجابة'],
+        time_limit_seconds: ['time','time_limit','time_limit_seconds','seconds','duration','وقت']
+      };
+      Object.keys(candidates).forEach(key=>{
+        mappings[key]='';
+        for(const c of candidates[key]){
+          const idx = lower.findIndex(h=>h.includes(c));
+          if(idx>=0){ mappings[key]=headers[idx]; break; }
+        }
+      });
+      // update selects if visible
+      mapGrid.querySelectorAll('select').forEach(s=>{
+        const k=s.dataset.key;
+        if(mappings[k]) s.value = mappings[k];
+      });
+    });
+
+    buildBtn.addEventListener('click', ()=>{
+      if(!rawRows.length){ alert('لم تقم برفع ملف بعد'); return; }
+      // auto map then build
+      autoMapBtn.click();
+      // show map to allow adjustment
+      showMapUI();
+    });
+
+    buildFromMap.addEventListener('click', ()=>{
+      // build quizItems from rawRows and mappings
+      quizItems = rawRows.map(row=>{
+        const q = (row[mappings.question]||'').toString();
+        const opts = [mappings.option1,mappings.option2,mappings.option3,mappings.option4].map(k=> (row[k]||'').toString()).filter(Boolean);
+        let correct = 0;
+        if(mappings.correct_index){
+          const raw = String(row[mappings.correct_index]||'').trim();
+          if(/^\d+$/.test(raw)){
+            let idx = parseInt(raw,10);
+            // accept 1-based or 0-based
+            if(idx>0 && idx<=opts.length) idx = idx-1;
+            correct = Math.max(0, Math.min(idx, opts.length-1));
+          } else {
+            const match = opts.findIndex(o => o.toLowerCase() === raw.toLowerCase());
+            if(match>=0) correct = match;
+          }
+        }
+        const tl = mappings.time_limit_seconds ? parseInt(row[mappings.time_limit_seconds]||30,10) : 30;
+        return { question:q, options:opts, correct_index: isNaN(correct)?0:correct, time_limit_seconds: isNaN(tl)?30:tl };
+      }).filter(i => i.question && i.options && i.options.length>=2);
+      if(!quizItems.length){ alert('لم يتم العثور على أسئلة صحيحة. تأكد من الماب والبيانات.'); return; }
+      showPreview();
+    });
+
+    function showPreview(){
+      previewList.innerHTML='';
+      qCount.textContent = quizItems.length;
+      quizItems.slice(0,50).forEach((q,i)=>{
+        const block = document.createElement('div');
+        block.className = 'q-block';
+        block.innerHTML = `<div style="font-weight:600">${i+1}. ${escapeHtml(q.question)}</div>
+          <div style="display:grid;gap:6px;margin-top:8px">
+            ${q.options.map((o,j)=>`<div class="opt ${q.correct_index===j?'correct':''}">${String.fromCharCode(65+j)}. ${escapeHtml(o)}</div>`).join('')}
+          </div>`;
+        previewList.appendChild(block);
+      });
+      setVisible(previewCard,true);
+      setVisible(mapCard,false);
+    }
+
+    editMap.addEventListener('click', ()=> { setVisible(mapCard,true); setVisible(previewCard,false); });
+    backToUpload.addEventListener('click', ()=> { resetAll(); });
+
+    startQuizBtn.addEventListener('click', ()=> { startQuiz(); });
+
+    function startQuiz(){
+      answers = [];
+      currentIndex = 0;
+      setVisible(quizCard,true);
+      setVisible(previewCard,false);
+      setVisible(resultCard,false);
+      totalQEl.textContent = quizItems.length;
+      renderQuestion(currentIndex);
+    }
+
+    function renderQuestion(i){
+      const q = quizItems[i];
+      currentIndexEl.textContent = (i+1);
+      timeLeftEl.textContent = q.time_limit_seconds;
+      questionArea.innerHTML = `<div style="font-weight:600;font-size:18px">${escapeHtml(q.question)}</div>
+        <div style="margin-top:12px;display:grid;gap:8px">
+          ${q.options.map((o,j)=>`<button data-idx="${j}" class="opt" style="text-align:right">${String.fromCharCode(65+j)}. ${escapeHtml(o)}</button>`).join('')}
+        </div>`;
+      // attach listeners
+      questionArea.querySelectorAll('button.opt').forEach(btn=>{
+        btn.addEventListener('click', ()=> {
+          const idx = parseInt(btn.dataset.idx,10);
+          recordAnswer(idx);
+        });
+      });
+      // timer
+      clearInterval(timer);
+      let t = q.time_limit_seconds || 30;
+      timeLeftEl.textContent = t;
+      timer = setInterval(()=> {
+        t--; timeLeftEl.textContent = t;
+        if(t<=0){ clearInterval(timer); recordAnswer(null); }
+      },1000);
+    }
+
+    function recordAnswer(chosen){
+      clearInterval(timer);
+      answers.push({ index: currentIndex, chosen: chosen });
+      currentIndex++;
+      if(currentIndex>=quizItems.length) return showResults();
+      renderQuestion(currentIndex);
+    }
+
+    function showResults(){
+      setVisible(quizCard,false);
+      setVisible(resultCard,true);
+      const correctCount = answers.reduce((acc,a)=>{
+        const it = quizItems[a.index];
+        if(it && a.chosen === it.correct_index) return acc+1;
+        return acc;
+      },0);
+      scoreText.textContent = `حصلت على ${correctCount} من ${quizItems.length}`;
+      resultsList.innerHTML = '';
+      quizItems.forEach((q,i)=>{
+        const a = answers.find(x=>x.index===i);
+        const chosenText = (a && a.chosen!=null) ? (q.options[a.chosen]||'') : 'لم يرد';
+        const el = document.createElement('div');
+        el.className = 'q-block';
+        el.innerHTML = `<div style="font-weight:600">${i+1}. ${escapeHtml(q.question)}</div>
+          <div class="small" style="margin-top:6px">الإجابة الصحيحة: <strong>${escapeHtml(q.options[q.correct_index])}</strong></div>
+          <div class="small">إجابتك: <strong>${escapeHtml(chosenText)}</strong></div>`;
+        resultsList.appendChild(el);
+      });
+    }
+
+    exportJsonBtn.addEventListener('click', ()=>{
+      if(!quizItems.length){ alert('لم تُنشأ كويز بعد'); return; }
+      const blob = new Blob([JSON.stringify(quizItems,null,2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'quiz.json'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    restartBtn.addEventListener('click', ()=> resetAll());
+
+    function resetAll(){
+      rawRows = []; headers = []; mappings = {question:'',option1:'',option2:'',option3:'',option4:'',correct_index:'',time_limit_seconds:''};
+      quizItems = []; answers = []; currentIndex = 0;
+      fileInput.value = '';
+      fileNameEl.textContent = '';
+      setVisible(mapCard,false); setVisible(previewCard,false); setVisible(quizCard,false); setVisible(resultCard,false);
+    }
+
+    // helpers
+    function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+  </script>
+</body>
+</html>

@@ -226,12 +226,13 @@ async function loadQuiz(id){
     titleEl.textContent = data.name || 'Quiz';
 
 // نفترض أن data.json يحتوي على نص JSON كامل
+// ✅ تعديل ليتعامل مع مفتاح jsonText في Firebase الحالي
 let json;
 try {
-  json = JSON.parse(data.json); // تحويل النص إلى مصفوفة/كائن
+  json = JSON.parse(data.jsonText); // الآن يقرأ من jsonText بدلاً من json
 } catch (err) {
-  throw new Error('خطأ في صيغة JSON');
-}
+  throw new Error('خطأ في صيغة JSON داخل jsonText');
+  }
 
 if (!Array.isArray(json) || json.length === 0)
   throw new Error('الملف لا يحتوي أسئلة');

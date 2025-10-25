@@ -1,4 +1,4 @@
-<!doctype html>
+  <!doctype html>
 <html lang="ar">
 <head>
 <meta charset="utf-8">
@@ -48,10 +48,6 @@
   .option:hover{background:#e2e8f0}
   .option.correct{background:#dcfce7;border:2px solid #22c55e;}
   .option.wrong{background:#fee2e2;border:2px solid #ef4444;}
-  body.dark .option{background:#374151;color:#e5e7eb;}
-  body.dark .option:hover{background:#4b5563;}
-  body.dark .option.correct{background:#166534;border:2px solid #22c55e;color:#fff;}
-  body.dark .option.wrong{background:#7f1d1d;border:2px solid #ef4444;color:#fff;}
   .result{
     text-align:center;font-size:22px;padding:30px 10px;
     background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.05);
@@ -154,23 +150,17 @@ function renderQuestions(){
       div.onclick=()=>{
         if(div.classList.contains('correct')||div.classList.contains('wrong'))return;
         answeredCount++;
-        const correctIndex=q.correct_index;
-
-        if(i===correctIndex){
+        if(i===q.correct_index){
           div.classList.add('correct');
           soundCorrect.currentTime=0;
           soundCorrect.play();
-          if(navigator.vibrate)navigator.vibrate(70);
+          if(navigator.vibrate)navigator.vibrate(70); // اهتزاز بسيط
           correctCount++;
         }else{
           div.classList.add('wrong');
           soundWrong.currentTime=0;
           soundWrong.play();
-          // إظهار الإجابة الصحيحة
-          const correctOption=card.querySelectorAll('.option')[correctIndex];
-          correctOption.classList.add('correct');
         }
-
         // تعطيل باقي الخيارات
         Array.from(card.querySelectorAll('.option')).forEach(o=>o.onclick=null);
       };
@@ -179,6 +169,7 @@ function renderQuestions(){
     qContainer.appendChild(card);
   });
 
+  // زر عرض النتيجة
   const btn=document.createElement('button');
   btn.textContent='عرض النتيجة';
   btn.style.cssText='display:block;margin:30px auto;padding:10px 20px;background:#0ea5a4;color:white;border:none;border-radius:8px;font-weight:600;';
@@ -194,22 +185,26 @@ function showResult(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+// زر الوضع الليلي
 document.getElementById('themeBtn').onclick=()=>{
   document.body.classList.toggle('dark');
 };
 
+// زر المشاركة (ينسخ الرابط + id)
 document.getElementById('shareBtn').onclick=()=>{
   const params=new URLSearchParams(location.search);
   const quizId=params.get('id')||document.getElementById('quizIdInput')?.value;
   const quizLink=`${window.location.origin}${window.location.pathname}?id=${quizId}`;
+  const text=`📘 ${titleEl.textContent}\n${quizLink}`;
   if(navigator.share){
-    navigator.share({url:quizLink});
+    navigator.share({title:titleEl.textContent,text, url:quizLink});
   }else{
-    navigator.clipboard.writeText(quizLink);
-    alert('تم نسخ رابط الكويز ✅');
+    navigator.clipboard.writeText(text);
+    alert('تم نسخ رابط الكويز مع العنوان ✅');
   }
 };
 
+// فحص ID بالرابط
 const params=new URLSearchParams(location.search);
 let quizId=params.get('id');
 if(!quizId){
@@ -223,4 +218,4 @@ if(!quizId){
 }else loadQuiz(quizId);
 </script>
 </body>
-  </html>
+</html>

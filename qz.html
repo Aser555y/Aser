@@ -1,4 +1,4 @@
-<!doctype html>
+  <!doctype html>
 <html lang="ar">
 <head>
 <meta charset="utf-8">
@@ -6,120 +6,81 @@
 <title>Quiz</title>
 <style>
   body{
-    font-family: "Cairo", system-ui, sans-serif;
+    font-family:"Cairo",system-ui,sans-serif;
     margin:0;
     background:#f5f7fa;
     color:#111;
     direction:rtl;
     overflow-x:hidden;
+    transition:background 0.3s,color 0.3s;
   }
+  body.dark{background:#111827;color:#e5e7eb;}
   header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:14px 18px;
-    background:#fff;
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 18px;background:#fff;
     box-shadow:0 2px 8px rgba(0,0,0,0.05);
     position:sticky;top:0;z-index:10;
+    transition:background 0.3s;
   }
+  body.dark header{background:#1f2937;}
   h1{margin:0;font-size:18px;font-weight:700;color:#0ea5a4}
   .actions{display:flex;gap:8px;align-items:center}
   button{
-    border:none;
-    padding:8px 14px;
-    border-radius:8px;
-    cursor:pointer;
-    background:#e5e7eb;
-    font-weight:600;
-    transition:0.2s;
+    border:none;padding:8px 14px;border-radius:8px;
+    cursor:pointer;background:#e5e7eb;font-weight:600;transition:0.2s;
   }
   button:hover{background:#dbe5ea}
+  body.dark button{background:#374151;color:#f9fafb;}
   .container{
-    max-width:700px;
-    margin:40px auto;
-    padding:24px;
-    background:white;
-    border-radius:14px;
-    box-shadow:0 4px 20px rgba(0,0,0,0.06);
+    max-width:700px;margin:30px auto;padding:20px;
   }
-  .question{
-    font-size:20px;
-    font-weight:700;
-    margin-bottom:18px;
-    color:#222;
-    text-align:right;
+  .card{
+    background:white;padding:18px;border-radius:14px;
+    box-shadow:0 3px 12px rgba(0,0,0,0.06);
+    margin-bottom:20px;transition:background 0.3s;
   }
+  body.dark .card{background:#1f2937;}
+  .question{font-size:18px;font-weight:700;margin-bottom:10px}
   .option{
-    padding:14px 16px;
-    background:#f1f5f9;
-    border-radius:10px;
-    margin-bottom:10px;
-    cursor:pointer;
-    transition:all 0.2s ease;
-    border:2px solid transparent;
+    background:#f1f5f9;padding:10px 12px;border-radius:10px;
+    margin-bottom:8px;cursor:pointer;transition:0.2s;
   }
   .option:hover{background:#e2e8f0}
-  .option.correct{background:#dcfce7;border-color:#22c55e;animation:flashGreen 0.5s}
-  .option.wrong{background:#fee2e2;border-color:#ef4444;animation:flashRed 0.5s}
-  @keyframes flashGreen{0%{background:#bbf7d0}100%{background:#dcfce7}}
-  @keyframes flashRed{0%{background:#fecaca}100%{background:#fee2e2}}
-  .progress{
-    position:fixed;top:0;left:0;height:4px;
-    background:linear-gradient(90deg,#0ea5a4,#22c55e);
-    width:0%;transition:width 0.4s ease;
-  }
+  .option.correct{background:#dcfce7;border:2px solid #22c55e;}
+  .option.wrong{background:#fee2e2;border:2px solid #ef4444;}
   .result{
-    text-align:center;
-    font-size:22px;
-    padding:40px 10px;
-    background:#fff;
-    border-radius:12px;
-    box-shadow:0 4px 20px rgba(0,0,0,0.05);
-    width:fit-content;
-    margin:40px auto;
+    text-align:center;font-size:22px;padding:30px 10px;
+    background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.05);
+    width:fit-content;margin:40px auto;
   }
+  body.dark .result{background:#1f2937;}
   #idPrompt{
-    position:fixed;top:0;left:0;right:0;bottom:0;
-    background:rgba(0,0,0,0.5);
-    display:flex;align-items:center;justify-content:center;
-    z-index:9999;
+    position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);
+    display:flex;align-items:center;justify-content:center;z-index:9999;
   }
   #idPromptBox{
-    background:white;
-    padding:24px;
-    border-radius:14px;
-    width:320px;
-    text-align:center;
+    background:white;padding:24px;border-radius:14px;width:320px;text-align:center;
     box-shadow:0 4px 14px rgba(0,0,0,0.2);
   }
-  input[type=text]{
-    width:100%;
-    padding:10px;
-    border:1px solid #ddd;
-    border-radius:8px;
-    margin-top:8px;
-  }
+  input[type=text]{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin-top:8px;}
 </style>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 </head>
 <body>
-<div class="progress" id="progress"></div>
 <header>
   <h1 id="quizTitle">جارٍ التحميل...</h1>
   <div class="actions">
-    <button id="copyBtn">نسخ الرابط</button>
-    <button id="shareBtn">مشاركة</button>
+    <button id="shareBtn">🔗 مشاركة</button>
+    <button id="themeBtn">🌙</button>
   </div>
 </header>
 
-<div class="container" id="quizContainer" style="display:none">
-  <div id="questionBox" class="question"></div>
-  <div id="optionsBox"></div>
-</div>
-
+<div class="container" id="quizContainer" style="display:none"></div>
 <div class="result" id="resultBox" style="display:none"></div>
 
 <div id="idPrompt" style="display:none">
@@ -134,144 +95,127 @@
 <audio id="soundWrong" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAI21TvGX8jjTbEIDww5GEKcxM9zL6Gkn8",
-  authDomain: "ak-sport-a985e.firebaseapp.com",
-  databaseURL: "https://ak-sport-a985e-default-rtdb.firebaseio.com/",
-  projectId: "ak-sport-a985e",
-  storageBucket: "ak-sport-a985e.appspot.com",
-  messagingSenderId: "922662521404",
-  appId: "1:922662521404:android:0e26b04730ab5dc3ddd139"
+const firebaseConfig={
+  apiKey:"AIzaSyAI21TvGX8jjTbEIDww5GEKcxM9zL6Gkn8",
+  authDomain:"ak-sport-a985e.firebaseapp.com",
+  databaseURL:"https://ak-sport-a985e-default-rtdb.firebaseio.com/",
+  projectId:"ak-sport-a985e",
+  storageBucket:"ak-sport-a985e.appspot.com",
+  messagingSenderId:"922662521404",
+  appId:"1:922662521404:android:0e26b04730ab5dc3ddd139"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db=firebase.database();
 
-const titleEl = document.getElementById('quizTitle');
-const qBox = document.getElementById('questionBox');
-const oBox = document.getElementById('optionsBox');
-const resultBox = document.getElementById('resultBox');
-const progressBar = document.getElementById('progress');
-const soundCorrect = document.getElementById('soundCorrect');
-const soundWrong = document.getElementById('soundWrong');
+const titleEl=document.getElementById('quizTitle');
+const qContainer=document.getElementById('quizContainer');
+const resultBox=document.getElementById('resultBox');
+const soundCorrect=document.getElementById('soundCorrect');
+const soundWrong=document.getElementById('soundWrong');
 
-let quizData = [];
-let current = 0;
-let correctCount = 0;
+let quizData=[],correctCount=0,answeredCount=0;
 
-// عرض السؤال
-function showQuestion(){
-  if(current >= quizData.length){
-    showResult();
-    return;
-  }
-  const q = quizData[current];
-  qBox.textContent = q.question;
-  oBox.innerHTML = '';
-  q.options.forEach((opt, i)=>{
-    const div = document.createElement('div');
-    div.className='option';
-    div.textContent = opt;
-    div.onclick = ()=>handleAnswer(div, i===q.correct_index);
-    oBox.appendChild(div);
-  });
-  progressBar.style.width = (current/quizData.length*100)+'%';
-}
-
-// التعامل مع الإجابة
-function handleAnswer(el, correct){
-  Array.from(oBox.children).forEach(ch=>ch.onclick=null);
-  if(correct){
-    el.classList.add('correct');
-    soundCorrect.play();
-    correctCount++;
-  }else{
-    el.classList.add('wrong');
-    soundWrong.play();
-  }
-  progressBar.style.width = ((current+1)/quizData.length*100)+'%';
-  setTimeout(()=>{current++;showQuestion();},1600);
-}
-
-// عرض النتيجة النهائية
-function showResult(){
-  document.getElementById('quizContainer').style.display='none';
-  const percent = Math.round((correctCount/quizData.length)*100);
-  resultBox.innerHTML = `
-    لقد أجبت بشكل صحيح على <b>${correctCount}</b> من <b>${quizData.length}</b> أسئلة<br>
-    نتيجتك: <b style="color:#0ea5a4">${percent}%</b> 🎯
-  `;
-  resultBox.style.display='block';
-}
-
-// نسخ ومشاركة
-document.getElementById('copyBtn').onclick=()=>{
-  navigator.clipboard.writeText(location.href);
-  alert('تم نسخ الرابط ✅');
-};
-document.getElementById('shareBtn').onclick=()=>{
-  if(navigator.share){
-    navigator.share({title:document.title,text:'شارك هذا الكويز',url:location.href});
-  }else{
-    alert('المشاركة غير مدعومة في هذا المتصفح');
-  }
-};
-
-// تحميل الكويز
 async function loadQuiz(id){
-  titleEl.textContent = 'جارٍ التحميل...';
-  try {
-    const snap = await db.ref('/' + id).get();
-    if (!snap.exists()) throw new Error('الكويز غير موجود');
-    const data = snap.val();
-    titleEl.textContent = data.name || 'Quiz';
-
-// نفترض أن data.json يحتوي على نص JSON كامل
-// ✅ تعديل ليتعامل مع مفتاح jsonText في Firebase الحالي
-let json;
-try {
-  json = JSON.parse(data.jsonText); // الآن يقرأ من jsonText بدلاً من json
-} catch (err) {
-  throw new Error('خطأ في صيغة JSON داخل jsonText');
-  }
-
-if (!Array.isArray(json) || json.length === 0)
-  throw new Error('الملف لا يحتوي أسئلة');
-
-quizData = json;
-    if (!Array.isArray(json) || json.length === 0)
-      throw new Error('الملف لا يحتوي أسئلة');
-
-    quizData = json;
-    current = 0;
-    correctCount = 0;
-
-    document.getElementById('quizContainer').style.display='block';
-    resultBox.style.display='none';
-    progressBar.style.width='0%';
-
-    showQuestion();
-  } catch (e) {
-    console.error(e);
-    alert('خطأ أثناء تحميل الكويز:\n' + e.message);
-    titleEl.textContent = '⚠️ خطأ في التحميل';
+  titleEl.textContent='جارٍ التحميل...';
+  try{
+    const snap=await db.ref('/'+id).get();
+    if(!snap.exists())throw new Error('الكويز غير موجود');
+    const data=snap.val();
+    titleEl.textContent=data.name||'Quiz';
+    let json;
+    try{json=JSON.parse(data.jsonText);}catch(e){throw new Error('خطأ في صيغة JSON داخل jsonText');}
+    if(!Array.isArray(json)||json.length===0)throw new Error('الملف لا يحتوي أسئلة');
+    quizData=json;
+    renderQuestions();
+  }catch(e){
+    alert('خطأ أثناء التحميل:\n'+e.message);
+    titleEl.textContent='⚠️ خطأ في التحميل';
   }
 }
 
-// فحص id بالرابط
-const params = new URLSearchParams(location.search);
-let quizId = params.get('id');
+function renderQuestions(){
+  qContainer.innerHTML='';
+  quizData.forEach((q,qi)=>{
+    const card=document.createElement('div');
+    card.className='card';
+    const qTitle=document.createElement('div');
+    qTitle.className='question';
+    qTitle.textContent=(qi+1)+'. '+q.question;
+    card.appendChild(qTitle);
 
+    q.options.forEach((opt,i)=>{
+      const div=document.createElement('div');
+      div.className='option';
+      div.textContent=opt;
+      div.onclick=()=>{
+        if(div.classList.contains('correct')||div.classList.contains('wrong'))return;
+        answeredCount++;
+        if(i===q.correct_index){
+          div.classList.add('correct');
+          soundCorrect.currentTime=0;
+          soundCorrect.play();
+          if(navigator.vibrate)navigator.vibrate(70); // اهتزاز بسيط
+          correctCount++;
+        }else{
+          div.classList.add('wrong');
+          soundWrong.currentTime=0;
+          soundWrong.play();
+        }
+        // تعطيل باقي الخيارات
+        Array.from(card.querySelectorAll('.option')).forEach(o=>o.onclick=null);
+      };
+      card.appendChild(div);
+    });
+    qContainer.appendChild(card);
+  });
+
+  // زر عرض النتيجة
+  const btn=document.createElement('button');
+  btn.textContent='عرض النتيجة';
+  btn.style.cssText='display:block;margin:30px auto;padding:10px 20px;background:#0ea5a4;color:white;border:none;border-radius:8px;font-weight:600;';
+  btn.onclick=showResult;
+  qContainer.appendChild(btn);
+  qContainer.style.display='block';
+}
+
+function showResult(){
+  const percent=Math.round((correctCount/quizData.length)*100);
+  resultBox.innerHTML=`✅ أجبت بشكل صحيح على <b>${correctCount}</b> من <b>${quizData.length}</b> أسئلة<br>نتيجتك: <b style="color:#0ea5a4">${percent}%</b>`;
+  resultBox.style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// زر الوضع الليلي
+document.getElementById('themeBtn').onclick=()=>{
+  document.body.classList.toggle('dark');
+};
+
+// زر المشاركة (ينسخ الرابط + id)
+document.getElementById('shareBtn').onclick=()=>{
+  const params=new URLSearchParams(location.search);
+  const quizId=params.get('id')||document.getElementById('quizIdInput')?.value;
+  const quizLink=`${window.location.origin}${window.location.pathname}?id=${quizId}`;
+  const text=`📘 ${titleEl.textContent}\n${quizLink}`;
+  if(navigator.share){
+    navigator.share({title:titleEl.textContent,text, url:quizLink});
+  }else{
+    navigator.clipboard.writeText(text);
+    alert('تم نسخ رابط الكويز مع العنوان ✅');
+  }
+};
+
+// فحص ID بالرابط
+const params=new URLSearchParams(location.search);
+let quizId=params.get('id');
 if(!quizId){
   document.getElementById('idPrompt').style.display='flex';
   document.getElementById('loadQuizBtn').onclick=()=>{
-    const entered = document.getElementById('quizIdInput').value.trim();
+    const entered=document.getElementById('quizIdInput').value.trim();
     if(!entered)return;
     document.getElementById('idPrompt').style.display='none';
     loadQuiz(entered);
   };
-}else{
-  loadQuiz(quizId);
-}
+}else loadQuiz(quizId);
 </script>
 </body>
 </html>
